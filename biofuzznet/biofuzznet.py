@@ -533,24 +533,33 @@ class BioFuzzNet(DiGraph):
             curr_node = current_nodes.pop(0)
             # If the not has not yet been updated
             if curr_node in non_updated_nodes:
+                can_update = False
                 non_updated_parents = [
                     p for p in self.predecessors(curr_node) if p in non_updated_nodes
                 ]
                 # Check if parents are updated
                 if non_updated_parents != []:
-                    can_update = True
                     for p in non_updated_parents:
-                        # Check if the parent is in the loop
+                        # Check if there is a loop to which both the parent and the current node belong
                         for cycle in loop_status[1]:
-                            if curr_node in cycle and p not in cycle:
-                                # Then we need to update p first
-                                current_nodes.append(p)
-                                can_update = False
-                else:
+                            if curr_node in cycle and p in cycle:
+                                # Then we will need to update curr_node without updating its parent
+                                non_updated_parents.remove(p)
+                                break
+                    # Now non_updated_parents only contains parents that are not part of a loop to which curr_node belongs
+                    if non_updated_parents != []:
+                        can_update = False
+                        for p in non_updated_parents:
+                            current_nodes.append(p)
+                    else: 
+                        can_update = True
+                    # The parents that were removed will be updated later as they are still part of non_updated nodes
+                else:  # If all node parents are updated then no problem
                     can_update = True
                 if not can_update:
+                    # Then we reappend the current visited node
                     current_nodes.append(curr_node)
-                else:
+                else: # Here we can update
                     self.update_fuzzy_node(curr_node)
                     non_updated_nodes.remove(curr_node)
                     cont = True
